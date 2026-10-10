@@ -1,7 +1,7 @@
 ﻿const cloudinary = require("./cloudinary");
 const streamifier = require("streamifier");
 
-const subirImagen = (buffer, carpeta = "zapatillas-marcelo/productos") => {
+const subirImagen = (buffer, carpeta = "aduni/reclamos") => {
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
       { folder: carpeta },
