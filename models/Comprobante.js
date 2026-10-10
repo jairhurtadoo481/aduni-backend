@@ -1,48 +1,45 @@
 const mongoose = require("mongoose");
 
-const itemSchema = new mongoose.Schema({
-  descripcion: { type: String, required: true },
-  cantidad: { type: Number, required: true },
-  precioUnitario: { type: Number, required: true },
-  productoId: { type: mongoose.Schema.Types.ObjectId, ref: "Producto", default: null },
-}, { _id: false });
-
+// Comprobante electrónico enviado a SUNAT (boleta, factura o nota de crédito).
 const comprobanteSchema = new mongoose.Schema({
-  tipo: { type: String, enum: ["factura", "boleta", "nota_credito"], required: true },
+  tipo: { type: String, enum: ["boleta", "factura", "nota_credito"], required: true },
   serie: { type: String, required: true },
   correlativo: { type: Number, required: true },
+  fechaEmision: { type: String, required: true },
   cliente: {
     tipoDocumento: { type: String, enum: ["DNI", "RUC"], required: true },
     documento: { type: String, required: true },
     nombre: { type: String, required: true },
     direccion: { type: String, default: "" },
   },
-  items: { type: [itemSchema], required: true },
-  moneda: { type: String, default: "PEN" },
-  subtotal: { type: Number, required: true },
-  igv: { type: Number, required: true },
+  items: [{
+    _id: false,
+    descripcion: { type: String, required: true },
+    cantidad: { type: Number, required: true },
+    precioUnitario: { type: Number, required: true },
+    afectacion: { type: String, enum: ["10", "20"], default: "20" }, // 10 gravado, 20 exonerado
+  }],
+  gravadas: { type: Number, default: 0 },
+  exoneradas: { type: Number, default: 0 },
+  igv: { type: Number, default: 0 },
   total: { type: Number, required: true },
   ambiente: { type: String, enum: ["beta", "produccion"], required: true },
-  estado: {
-    type: String,
-    enum: ["pendiente", "aceptado", "rechazado", "error"],
-    default: "pendiente",
-  },
-  codigoHash: { type: String, default: null },
-  observaciones: { type: String, default: null },
-  xmlUrl: { type: String, default: null },
-  cdrUrl: { type: String, default: null },
-  pdfUrl: { type: String, default: null },
-  comprobanteAfectado: {
-    tipo: { type: String, enum: ["factura", "boleta"], default: null },
-    serie: { type: String, default: null },
-    correlativo: { type: Number, default: null },
-  },
-  motivoCodigo: { type: String, default: null },
-  motivoDescripcion: { type: String, default: null },
+  estado: { type: String, enum: ["pendiente", "aceptado", "rechazado", "error"], default: "pendiente" },
+  codigoRespuesta: { type: String, default: "" },
+  observaciones: { type: String, default: "" },
+  xmlFirmado: { type: String, select: false },
+  cdrZipBase64: { type: String, select: false },
+  // Vínculos con el colegio
+  recibo: { type: mongoose.Schema.Types.ObjectId, ref: "Recibo", default: null },
+  estudiante: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario", default: null },
+  emitidoPor: { type: mongoose.Schema.Types.ObjectId, ref: "Usuario" },
+  afectado: { tipo: String, serie: String, correlativo: Number, comprobante: { type: mongoose.Schema.Types.ObjectId, ref: "Comprobante" } },
+  motivoCodigo: { type: String, default: "" },
+  motivoDescripcion: { type: String, default: "" },
   anulado: { type: Boolean, default: false },
 }, { timestamps: true });
 
 comprobanteSchema.index({ serie: 1, correlativo: 1, ambiente: 1 }, { unique: true });
+comprobanteSchema.index({ recibo: 1 });
 
 module.exports = mongoose.model("Comprobante", comprobanteSchema);
