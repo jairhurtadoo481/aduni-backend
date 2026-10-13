@@ -212,11 +212,18 @@ const libretaEstudiante = h(async (req, res) => {
 });
 
 const carnes = h(async (req, res) => {
+  const PERSONAL = { profesor: ["profesor"], administrativo: ["administrativo"], todos: ["profesor", "administrativo"] };
   const filtro = { rol: "estudiante", activo: true };
+  if (PERSONAL[req.query.personal]) filtro.rol = { $in: PERSONAL[req.query.personal] };
   if (esId(req.query.aula)) filtro.aula = req.query.aula;
   if (esId(req.query.estudiante)) filtro._id = req.query.estudiante;
+  if (esId(req.query.usuario)) {
+    filtro._id = req.query.usuario;
+    filtro.rol = { $in: ["estudiante", "profesor", "administrativo"] };
+  }
   const config = await obtenerConfig();
-  const est = await Usuario.find(filtro).sort({ nombre: 1 }).select("nombres apellidos codigo dni foto aula").populate("aula").limit(400);
+  const est = await Usuario.find(filtro).sort({ rol: 1, nombre: 1 }).select("rol nombres apellidos codigo dni foto aula especialidad cargo").populate("aula").limit(400);
+  if (!est.length) return res.status(404).json({ mensaje: "No hay carnés para imprimir con ese filtro" });
   await carnetsPDF(est, config.anio, res);
 });
 
